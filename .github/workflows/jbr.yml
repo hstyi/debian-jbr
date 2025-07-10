@@ -1,0 +1,72 @@
+name: JetBrains Runtime
+
+on:
+  workflow_dispatch:
+  push:
+  schedule:
+    - cron: '0 3 * * 2'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get JBR latest release
+        id: get_release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const release = await github.rest.repos.getLatestRelease({
+              owner: 'JetBrains',
+              repo: 'JetBrainsRuntime',
+            });
+            
+            const tagName = release.data.tag_name.replace('jbr-release-','')
+            const match = "21.0.7b1038.58".match(/^[\d.]+/)
+            const major = match[0]
+            const patch = tagName.replace(major,'')
+            core.setOutput("major", major);
+            core.setOutput("patch", patch);
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          IMAGE=${{ secrets.DOCKER_USERNAME }}/jbr
+          TAG=${{steps.get_release.outputs.major}}${{steps.get_release.outputs.patch}}
+          EXISTS=$(curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/$IMAGE/tags/$TAG/)
+          if [ "$EXISTS" = "200" ]; then
+            echo "Tag exists: $IMAGE:$TAG"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag does not exist."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push (multi-platform)
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/jbr:${{steps.get_release.outputs.major}}${{steps.get_release.outputs.patch}}
+            ${{ secrets.DOCKER_USERNAME }}/jbr:latest
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            JBR_MAJOR=${{steps.get_release.outputs.major}}
+            JBR_PATCH=${{steps.get_release.outputs.patch}}
+            
