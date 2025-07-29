@@ -25,7 +25,7 @@ jobs:
             });
             
             const tagName = release.data.tag_name.replace('jbr-release-','')
-            const match = "21.0.7b1038.58".match(/^[\d.]+/)
+            const match = tagName.match(/^[\d.]+/)
             const major = match[0]
             const patch = tagName.replace(major,'')
             core.setOutput("major", major);
