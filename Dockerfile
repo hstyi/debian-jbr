@@ -7,9 +7,9 @@ RUN apt-get clean && apt-get update && apt-get install -y curl tar zip binutils 
 
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then \
-        URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-${JBR_MAJOR}-linux-x64-${JBR_PATCH}.tar.gz"; \
+        URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-${JBR_MAJOR}-linux-x64-${JBR_PATCH}.tar.gz"; \
     elif [ "$ARCH" = "arm64" ]; then \
-        URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-${JBR_MAJOR}-linux-aarch64-${JBR_PATCH}.tar.gz"; \
+        URL="https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-${JBR_MAJOR}-linux-aarch64-${JBR_PATCH}.tar.gz"; \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
